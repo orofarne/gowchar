@@ -67,17 +67,17 @@ func WcharTNToString(s *C.wchar_t, size C.size_t) (string, error) {
 func stringToWchar2(s string) (*C.wchar_t, C.size_t) {
 	var slen int
 	s1 := s
-	for len(s) > 0 {
-		_, size := utf8.DecodeRuneInString(s)
-		if size <= 2 {
+	for len(s1) > 0 {
+		r, size := utf8.DecodeRuneInString(s1)
+		if utf16.IsSurrogate(r) {
 			slen += 2
 		} else {
-			slen += 4
+			slen += 1
 		}
 		s1 = s1[size:]
 	}
 	slen++ // \0
-	res := C.malloc(C.size_t(slen))
+	res := C.malloc(C.size_t(slen) * SIZEOF_WCHAR_T)
 	var i int
 	for len(s) > 0 {
 		r, size := utf8.DecodeRuneInString(s)
@@ -101,7 +101,7 @@ func stringToWchar2(s string) (*C.wchar_t, C.size_t) {
 func stringToWchar4(s string) (*C.wchar_t, C.size_t) {
 	slen := utf8.RuneCountInString(s)
 	slen++ // \0
-	res := C.malloc(C.size_t(slen))
+	res := C.malloc(C.size_t(slen) * SIZEOF_WCHAR_T)
 	var i int
 	for len(s) > 0 {
 		r, size := utf8.DecodeRuneInString(s)
