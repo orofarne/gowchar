@@ -69,10 +69,10 @@ func stringToWchar2(s string) (*C.wchar_t, C.size_t) {
 	s1 := s
 	for len(s1) > 0 {
 		r, size := utf8.DecodeRuneInString(s1)
-		if utf16.IsSurrogate(r) {
-			slen += 2
-		} else {
+		if er, _ := utf16.EncodeRune(r); er == '\uFFFD' {
 			slen += 1
+		} else {
+			slen += 2
 		}
 		s1 = s1[size:]
 	}
@@ -81,8 +81,7 @@ func stringToWchar2(s string) (*C.wchar_t, C.size_t) {
 	var i int
 	for len(s) > 0 {
 		r, size := utf8.DecodeRuneInString(s)
-		if utf16.IsSurrogate(r) {
-			r1, r2 := utf16.EncodeRune(r)
+		if r1, r2 := utf16.EncodeRune(r); r1 != '\uFFFD' {
 			C.gowchar_set((*C.wchar_t)(res), C.int(i), C.wchar_t(r1))
 			i++
 			C.gowchar_set((*C.wchar_t)(res), C.int(i), C.wchar_t(r2))
@@ -124,7 +123,11 @@ func wchar2ToString(s *C.wchar_t) (string, error) {
 		}
 		r := rune(ch)
 		i++
-		if utf8.ValidRune(r) {
+		if !utf16.IsSurrogate(r) {
+			if !utf8.ValidRune(r) {
+				err := fmt.Errorf("Invalid rune at position %v", i)
+				return "", err
+			}
 			res += string(r)
 		} else {
 			ch2 := C.gowchar_get(s, C.int(i))
@@ -134,7 +137,7 @@ func wchar2ToString(s *C.wchar_t) (string, error) {
 				err := fmt.Errorf("Invalid surrogate pair at position %v", i-1)
 				return "", err
 			}
-			res += string(r2)
+			res += string(r12)
 			i++
 		}
 	}
@@ -173,7 +176,12 @@ func wchar2NToString(s *C.wchar_t, size C.size_t) (string, error) {
 		}
 		r := rune(ch)
 		i++
-		if utf8.ValidRune(r) {
+		if !utf16.IsSurrogate(r) {
+			if !utf8.ValidRune(r) {
+				err := fmt.Errorf("Invalid rune at position %v", i)
+				return "", err
+			}
+
 			res += string(r)
 		} else {
 			if i >= N {
@@ -187,7 +195,7 @@ func wchar2NToString(s *C.wchar_t, size C.size_t) (string, error) {
 				err := fmt.Errorf("Invalid surrogate pair at position %v", i-1)
 				return "", err
 			}
-			res += string(r2)
+			res += string(r12)
 			i++
 		}
 	}
