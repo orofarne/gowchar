@@ -23,9 +23,7 @@ import (
 	"unicode/utf8"
 )
 
-var (
-	SIZEOF_WCHAR_T = C.SIZEOF_WCHAR_T
-)
+var SIZEOF_WCHAR_T C.size_t = C.size_t(C.SIZEOF_WCHAR_T)
 
 func StringToWcharT(s string) (*C.wchar_t, C.size_t) {
 	switch SIZEOF_WCHAR_T {
